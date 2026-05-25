@@ -14,17 +14,36 @@ st.write("Professional Execution Suite: Live Charts, Collapsible Sidebar, and Dy
 # Tabs Setup
 tab1, tab2 = st.tabs(["🟢 Live Grid Trading Simulation", "📊 Fix Historical Backtesting"])
 
-# Exchange Cache Setup
-@st.cache_resource
-def get_exchange():
-    return ccxt.binance({'enableRateLimit': True})
+# --- MULTI-EXCHANGE SETUP WITH REGION GUARD ---
+# 1. Sidebar mein Exchange Select karne ka option (Line 27 ke aas paas set karein)
+selected_exchange_name = st.sidebar.selectbox(
+    "Select Live Data Feed Platform:",
+    ["Bybit", "Bitget", "KuCoin", "OKX", "Binance (Live)"]
+)
 
-exchange = get_exchange()
+@st.cache_resource
+def get_exchange_instance(exchange_name):
+    # Name mapping to match CCXT library standards
+    name_map = {
+        "Bybit": "bybit",
+        "Bitget": "bitget",
+        "KuCoin": "kucoin",
+        "OKX": "okx",
+        "Binance (Live)": "binance"
+    }
+    ccxt_id = name_map.get(exchange_name, "bybit")
+    
+    # Dynamic class loading based on user selection
+    exchange_class = getattr(ccxt, ccxt_id)
+    return exchange_class({'enableRateLimit': True})
+
+# Dynamic Exchange Instance Trigger
+exchange = get_exchange_instance(selected_exchange_name)
 
 # --- SIDEBAR: GLOBAL BOT CONFIGURATION ---
 st.sidebar.header("⚙️ Global Configuration")
 
-exchange_type = st.sidebar.selectbox("Select Exchange Platform:", ["Binance (Live)", "Bitget (Simulation)"])
+exchange_type = st.sidebar.selectbox("Select Exchange Platform:", ["Bybit", "Bitget", "KuCoin", "OKX", "Binance (Live)"])
 
 crypto_list = ["XRP/USDT", "BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "ADA/USDT", "DOT/USDT", "DOGE/USDT", "TON/USDT"]
 
