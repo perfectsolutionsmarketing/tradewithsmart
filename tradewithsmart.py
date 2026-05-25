@@ -40,11 +40,6 @@ def get_exchange_instance(exchange_name):
 # Dynamic Exchange Instance Trigger
 exchange = get_exchange_instance(selected_exchange_name)
 
-# --- SIDEBAR: GLOBAL BOT CONFIGURATION ---
-st.sidebar.header("⚙️ Global Configuration")
-
-exchange_type = st.sidebar.selectbox("Select Exchange Platform:", ["Bybit", "Bitget", "KuCoin", "OKX", "Binance (Live)"])
-
 crypto_list = ["XRP/USDT", "BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "ADA/USDT", "DOT/USDT", "DOGE/USDT", "TON/USDT"]
 
 # --- DYNAMIC RESET ENGINE ON PAIR SWITCH ---
