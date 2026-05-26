@@ -23,8 +23,8 @@ selected_exchange_name = st.sidebar.selectbox(
 @st.cache_resource
 def get_exchange_instance(exchange_name):
     name_map = {
-        "Bybit": "bybit",
         "Bitget": "bitget",
+        "Bybit": "bybit",   
         "KuCoin": "kucoin",
         "OKX": "okx",
         "Binance (Live)": "binance"
