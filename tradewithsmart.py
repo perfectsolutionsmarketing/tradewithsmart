@@ -17,7 +17,7 @@ tab1, tab2 = st.tabs(["🟢 Live Grid Trading Simulation", "📊 Fix Historical 
 # --- MULTI-EXCHANGE SETUP WITH REGION GUARD ---
 selected_exchange_name = st.sidebar.selectbox(
     "Select Live Data Feed Platform:",
-    ["Bitget", "Bybit", "KuCoin", "OKX", "BingX", "Binance (Live)"]
+    ["Bitget", "Bybit", "KuCoin", "OKX", "BingX", "Binance (Live)"],index=0
 )
 
 @st.cache_resource
