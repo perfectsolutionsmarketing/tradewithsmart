@@ -17,7 +17,7 @@ tab1, tab2 = st.tabs(["🟢 Live Grid Trading Simulation", "📊 Fix Historical 
 # --- MULTI-EXCHANGE SETUP WITH REGION GUARD ---
 selected_exchange_name = st.sidebar.selectbox(
     "Select Live Data Feed Platform:",
-    ["Bitget", "Bybit", "KuCoin", "OKX", "Binance (Live)"]
+    ["Bitget", "Bybit", "KuCoin", "OKX", "BingX", "Binance (Live)"]
 )
 
 @st.cache_resource
@@ -27,6 +27,7 @@ def get_exchange_instance(exchange_name):
         "Bybit": "bybit",   
         "KuCoin": "kucoin",
         "OKX": "okx",
+        "BingX": "bingx",
         "Binance (Live)": "binance"
     }
     ccxt_id = name_map.get(exchange_name, "bitget")
