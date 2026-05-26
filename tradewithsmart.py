@@ -327,9 +327,56 @@ with tab2:
                             dynamic_win_rate = round(80.0 + min(4.9, implied_volatility_factor * 100), 1)
                             st.metric("Backtest Engine Win Rate", f"{dynamic_win_rate}%", delta="Highly Adaptive")
                         
-                        st.write(f"### 📈 Historical Price Action Trend Chart ({symbol})")
-                        st.line_chart(df.set_index('Date')['Close'], color="#2ec4b6")
-                        
+                        # --- PROFESSIONAL CANDLESTICK + MID LINE CHART ENGINE ---
+st.write(f"### 📊 Advanced Candlestick Technical Chart")
+
+try:
+    import plotly.graph_objects as go
+    
+    # Calculating the Center/Mid Price of your Grid Range
+    mid_price = (lower_price + upper_price) / 2
+    
+    # Building Interactive Candlestick Figure using uppercase column names
+    fig = go.Figure(data=[go.Candlestick(
+        x=df['Date'],
+        open=df['Open'],
+        high=df['High'],
+        low=df['Low'],
+        close=df['Close'],
+        name="Price Candle",
+        increasing_line_color='#26a69a', # Premium Green
+        decreasing_line_color='#ef5350'  # Premium Red
+    )])
+    
+    # Adding Strategic Mid-Price Horizon Line
+    fig.add_shape(
+        type="line",
+        x0=df['Date'].min(),
+        y0=mid_price,
+        x1=df['Date'].max(),
+        y1=mid_price,
+        line=dict(
+            color="Orange",
+            width=2,
+            dash="dashdot", # Dashed Line Style
+        ),
+        name="Grid Mid Price"
+    )
+    
+    # Layout styling to look like a premium terminal
+    fig.update_layout(
+        xaxis_rangeslider_visible=False, # Hiding clutter slider
+        template="plotly_dark",          # Dark mode styling
+        margin=dict(l=20, r=20, t=20, b=20),
+        height=450,
+        yaxis=dict(title="Price (USDT)", gridcolor="#2d2d2d"),
+        xaxis=dict(gridcolor="#2d2d2d")
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+except Exception as chart_err:
+    st.error(f"Chart Render Error: {str(chart_err)}")
+    
                         st.write("---")
                         st.write("### 📅 Daily Performance Ledger (Date-wise Breakdown)")
                         
