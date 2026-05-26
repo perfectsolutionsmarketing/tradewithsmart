@@ -29,7 +29,7 @@ def get_exchange_instance(exchange_name):
         "OKX": "okx",
         "Binance (Live)": "binance"
     }
-    ccxt_id = name_map.get(exchange_name, "bybit")
+    ccxt_id = name_map.get(exchange_name, "bitget")
     exchange_class = getattr(ccxt, ccxt_id)
     return exchange_class({'enableRateLimit': True})
 
