@@ -15,7 +15,6 @@ st.write("Professional Execution Suite: Live Charts, Collapsible Sidebar, and Dy
 tab1, tab2 = st.tabs(["🟢 Live Grid Trading Simulation", "📊 Fix Historical Backtesting"])
 
 # --- MULTI-EXCHANGE SETUP WITH REGION GUARD ---
-# 1. Sidebar mein Exchange Select karne ka option (Line 27 ke aas paas set karein)
 selected_exchange_name = st.sidebar.selectbox(
     "Select Live Data Feed Platform:",
     ["Bybit", "Bitget", "KuCoin", "OKX", "Binance (Live)"]
@@ -23,7 +22,6 @@ selected_exchange_name = st.sidebar.selectbox(
 
 @st.cache_resource
 def get_exchange_instance(exchange_name):
-    # Name mapping to match CCXT library standards
     name_map = {
         "Bybit": "bybit",
         "Bitget": "bitget",
@@ -32,8 +30,6 @@ def get_exchange_instance(exchange_name):
         "Binance (Live)": "binance"
     }
     ccxt_id = name_map.get(exchange_name, "bybit")
-    
-    # Dynamic class loading based on user selection
     exchange_class = getattr(ccxt, ccxt_id)
     return exchange_class({'enableRateLimit': True})
 
@@ -46,11 +42,9 @@ crypto_list = ["XRP/USDT", "BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "ADA/
 if 'previous_pair' not in st.session_state:
     st.session_state.previous_pair = crypto_list[0]
 
-# Callback function jo dropdown change hote hi fire hogi aur values ko 0.0 par dump karegi
 def handle_pair_change():
     st.session_state.man_lower = 0.0
     st.session_state.man_upper = 0.0
-    # Streamlit widgets ki internal widgets key cache ko reset karne ke liye
     if 'manual_low_input' in st.session_state:
         st.session_state.manual_low_input = 0.0
     if 'manual_high_input' in st.session_state:
@@ -58,7 +52,6 @@ def handle_pair_change():
 
 symbol = st.sidebar.selectbox("Select Crypto Pair", crypto_list, key="pair_dropdown", on_change=handle_pair_change)
 
-# Cross-check fallback mechanism
 if st.session_state.previous_pair != symbol:
     st.session_state.man_lower = 0.0
     st.session_state.man_upper = 0.0
@@ -88,12 +81,11 @@ if 'price_history' not in st.session_state: st.session_state.price_history = []
 if 'man_lower' not in st.session_state: st.session_state.man_lower = 0.0
 if 'man_upper' not in st.session_state: st.session_state.man_upper = 0.0
 
-# --- COLLAPSIBLE SECTIONS: DROP-DOWN ARROWS ---
+# --- COLLAPSIBLE SECTIONS ---
 with st.sidebar.expander("📐 Grid Range Matrix Configuration", expanded=True):
     range_mode = st.radio("Choose Range Mode:", ["Manual Fix Price", "Auto Percentage (%)"], key="range_mode_key")
     
     if range_mode == "Manual Fix Price":
-        # System dynamic state values ko fetch karega jo default status par 0.0000 show karengi 
         b_lower = st.number_input("Lower Price Limit ($)", value=float(st.session_state.man_lower), step=0.01, format="%.4f", key="manual_low_input")
         b_upper = st.number_input("Upper Price Limit ($)", value=float(st.session_state.man_upper), step=0.01, format="%.4f", key="manual_high_input")
         st.session_state.man_lower = b_lower
@@ -328,55 +320,52 @@ with tab2:
                             st.metric("Backtest Engine Win Rate", f"{dynamic_win_rate}%", delta="Highly Adaptive")
                         
                         # --- PROFESSIONAL CANDLESTICK + MID LINE CHART ENGINE ---
-st.write(f"### 📊 Advanced Candlestick Technical Chart")
-
-try:
-    import plotly.graph_objects as go
-    
-    # Calculating the Center/Mid Price of your Grid Range
-    mid_price = (lower_price + upper_price) / 2
-    
-    # Building Interactive Candlestick Figure using uppercase column names
-    fig = go.Figure(data=[go.Candlestick(
-        x=df['Date'],
-        open=df['Open'],
-        high=df['High'],
-        low=df['Low'],
-        close=df['Close'],
-        name="Price Candle",
-        increasing_line_color='#26a69a', # Premium Green
-        decreasing_line_color='#ef5350'  # Premium Red
-    )])
-    
-    # Adding Strategic Mid-Price Horizon Line
-    fig.add_shape(
-        type="line",
-        x0=df['Date'].min(),
-        y0=mid_price,
-        x1=df['Date'].max(),
-        y1=mid_price,
-        line=dict(
-            color="Orange",
-            width=2,
-            dash="dashdot", # Dashed Line Style
-        ),
-        name="Grid Mid Price"
-    )
-    
-    # Layout styling to look like a premium terminal
-    fig.update_layout(
-        xaxis_rangeslider_visible=False, # Hiding clutter slider
-        template="plotly_dark",          # Dark mode styling
-        margin=dict(l=20, r=20, t=20, b=20),
-        height=450,
-        yaxis=dict(title="Price (USDT)", gridcolor="#2d2d2d"),
-        xaxis=dict(gridcolor="#2d2d2d")
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
-except Exception as chart_err:
-    st.error(f"Chart Render Error: {str(chart_err)}")
-    
+                        st.write(f"### 📊 Advanced Candlestick Technical Chart")
+                        
+                        try:
+                            import plotly.graph_objects as go
+                            
+                            # Fixed variable names to match code bounds (b_lower & b_upper)
+                            mid_price = (b_lower + b_upper) / 2
+                            
+                            fig = go.Figure(data=[go.Candlestick(
+                                x=df['Date'],
+                                open=df['Open'],
+                                high=df['High'],
+                                low=df['Low'],
+                                close=df['Close'],
+                                name="Price Candle",
+                                increasing_line_color='#26a69a', 
+                                decreasing_line_color='#ef5350'  
+                            )])
+                            
+                            fig.add_shape(
+                                type="line",
+                                x0=df['Date'].min(),
+                                y0=mid_price,
+                                x1=df['Date'].max(),
+                                y1=mid_price,
+                                line=dict(
+                                    color="Orange",
+                                    width=2,
+                                    dash="dashdot",
+                                ),
+                                name="Grid Mid Price"
+                            )
+                            
+                            fig.update_layout(
+                                xaxis_rangeslider_visible=False,
+                                template="plotly_dark",
+                                margin=dict(l=20, r=20, t=20, b=20),
+                                height=450,
+                                yaxis=dict(title="Price (USDT)", gridcolor="#2d2d2d"),
+                                xaxis=dict(gridcolor="#2d2d2d")
+                            )
+                            
+                            st.plotly_chart(fig, use_container_width=True)
+                        except Exception as chart_err:
+                            st.error(f"Chart Render Error: {str(chart_err)}")
+                        
                         st.write("---")
                         st.write("### 📅 Daily Performance Ledger (Date-wise Breakdown)")
                         
@@ -415,6 +404,6 @@ if st.session_state.bot_running:
     time.sleep(5)
     st.rerun()
 
-    
+
     # cd "~\Desktop\Python\Code Live"
     # python -m streamlit run tradewithsmart.py
