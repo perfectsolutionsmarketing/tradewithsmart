@@ -354,14 +354,16 @@ with tab2:
                             )
                             
                             fig.update_layout(
-                                xaxis_rangeslider_visible=False,
-                                template="plotly_dark",
-                                margin=dict(l=20, r=20, t=20, b=20),
-                                height=450,
-                                yaxis=dict(title="Price (USDT)", gridcolor="#2d2d2d"),
-                                xaxis=dict(gridcolor="#2d2d2d")
-                            )
-                            
+            xaxis_rangeslider_visible=False,
+            template="plotly_dark",
+            autosize=True,                         # Zoom par graph ko automatically resize karega
+            margin=dict(l=10, r=10, t=30, b=10),   # Left/Right extra padding kam karega
+            height=450,
+            yaxis=dict(title="Price (USDT)", gridcolor="#2d2d2d"),
+            xaxis=dict(gridcolor="#2d2d2d"),
+            hovermode="x unified"                  # Zoom ke baad bhi data point track karna aasan rakhega
+        ) 
+                            # Streamlit mein use_container_width ko True set karke render karein
                             st.plotly_chart(fig, use_container_width=True)
                         except Exception as chart_err:
                             st.error(f"Chart Render Error: {str(chart_err)}")
