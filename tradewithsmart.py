@@ -3,6 +3,7 @@ import time
 import ccxt
 import pandas as pd
 import numpy as np
+import plotly.graph_objects as go
 from datetime import datetime, timedelta
 
 # Page Configuration
@@ -11,13 +12,25 @@ st.set_page_config(page_title="TradeWithSmart Dashboard", layout="wide")
 st.title("🤖 TradeWithSmart - Pro Grid Engine")
 st.write("Professional Execution Suite: Live Charts, Collapsible Sidebar, and Dynamic Matrix.")
 
+# --- SESSION STATES FOR CONTROLS & REFRESH PERSISTENCE ---
+if 'bot_running' not in st.session_state: st.session_state.bot_running = False
+if 'positions' not in st.session_state: st.session_state.positions = []
+if 'buy_grids' not in st.session_state: st.session_state.buy_grids = []
+if 'sell_grids' not in st.session_state: st.session_state.sell_grids = []
+if 'logs' not in st.session_state: st.session_state.logs = []
+if 'total_profit' not in st.session_state: st.session_state.total_profit = 0.0
+if 'limit_order_triggered' not in st.session_state: st.session_state.limit_order_triggered = False
+if 'price_history' not in st.session_state: st.session_state.price_history = []
+if 'man_lower' not in st.session_state: st.session_state.man_lower = 0.0
+if 'man_upper' not in st.session_state: st.session_state.man_upper = 0.0
+
 # Tabs Setup
 tab1, tab2 = st.tabs(["🟢 Live Grid Trading Simulation", "📊 Fix Historical Backtesting"])
 
 # --- MULTI-EXCHANGE SETUP WITH REGION GUARD ---
 selected_exchange_name = st.sidebar.selectbox(
     "Select Live Data Feed Platform:",
-    ["Bitget", "Bybit", "KuCoin", "OKX", "BingX", "Binance (Live)"],index=0
+    ["Bitget", "Bybit", "KuCoin", "OKX", "BingX", "Binance (Live)"], index=0
 )
 
 @st.cache_resource
@@ -34,22 +47,17 @@ def get_exchange_instance(exchange_name):
     exchange_class = getattr(ccxt, ccxt_id)
     return exchange_class({'enableRateLimit': True})
 
-# Dynamic Exchange Instance Trigger
 exchange = get_exchange_instance(selected_exchange_name)
-
 crypto_list = ["XRP/USDT", "BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "ADA/USDT", "DOT/USDT", "DOGE/USDT", "TON/USDT"]
 
-# --- DYNAMIC RESET ENGINE ON PAIR SWITCH ---
 if 'previous_pair' not in st.session_state:
     st.session_state.previous_pair = crypto_list[0]
 
 def handle_pair_change():
     st.session_state.man_lower = 0.0
     st.session_state.man_upper = 0.0
-    if 'manual_low_input' in st.session_state:
-        st.session_state.manual_low_input = 0.0
-    if 'manual_high_input' in st.session_state:
-        st.session_state.manual_high_input = 0.0
+    st.session_state.manual_low_input = 0.0
+    st.session_state.manual_high_input = 0.0
 
 symbol = st.sidebar.selectbox("Select Crypto Pair", crypto_list, key="pair_dropdown", on_change=handle_pair_change)
 
@@ -69,18 +77,8 @@ except Exception:
 
 margin = st.sidebar.number_input("Total Capital / Margin ($)", value=500.0, step=50.0)
 
-# --- SESSION STATES FOR CONTROLS & REFRESH PERSISTENCE ---
-if 'bot_running' not in st.session_state: st.session_state.bot_running = False
-if 'balance' not in st.session_state: st.session_state.balance = margin
-if 'positions' not in st.session_state: st.session_state.positions = []
-if 'buy_grids' not in st.session_state: st.session_state.buy_grids = []
-if 'sell_grids' not in st.session_state: st.session_state.sell_grids = []
-if 'logs' not in st.session_state: st.session_state.logs = []
-if 'total_profit' not in st.session_state: st.session_state.total_profit = 0.0
-if 'limit_order_triggered' not in st.session_state: st.session_state.limit_order_triggered = False
-if 'price_history' not in st.session_state: st.session_state.price_history = []
-if 'man_lower' not in st.session_state: st.session_state.man_lower = 0.0
-if 'man_upper' not in st.session_state: st.session_state.man_upper = 0.0
+if 'balance' not in st.session_state or not st.session_state.bot_running: 
+    st.session_state.balance = margin
 
 # --- COLLAPSIBLE SECTIONS ---
 with st.sidebar.expander("📐 Grid Range Matrix Configuration", expanded=True):
@@ -217,7 +215,6 @@ with tab1:
 
                 for pos in st.session_state.positions[:]:
                     micro_tp_target = pos['entry_price'] + grid_interval
-                    
                     if current_price >= micro_tp_target:
                         raw_return_cash = pos['qty'] * current_price
                         return_cash = raw_return_cash * 0.999
@@ -320,13 +317,9 @@ with tab2:
                             dynamic_win_rate = round(80.0 + min(4.9, implied_volatility_factor * 100), 1)
                             st.metric("Backtest Engine Win Rate", f"{dynamic_win_rate}%", delta="Highly Adaptive")
                         
-                        # --- PROFESSIONAL CANDLESTICK + MID LINE CHART ENGINE ---
                         st.write(f"### 📊 Advanced Candlestick Technical Chart")
                         
                         try:
-                            import plotly.graph_objects as go
-                            
-                            # Fixed variable names to match code bounds (b_lower & b_upper)
                             mid_price = (b_lower + b_upper) / 2
                             
                             fig = go.Figure(data=[go.Candlestick(
@@ -342,29 +335,22 @@ with tab2:
                             
                             fig.add_shape(
                                 type="line",
-                                x0=df['Date'].min(),
-                                y0=mid_price,
-                                x1=df['Date'].max(),
-                                y1=mid_price,
-                                line=dict(
-                                    color="Orange",
-                                    width=2,
-                                    dash="dashdot",
-                                ),
+                                x0=df['Date'].min(), y0=mid_price,
+                                x1=df['Date'].max(), y1=mid_price,
+                                line=dict(color="Orange", width=2, dash="dashdot"),
                                 name="Grid Mid Price"
                             )
                             
                             fig.update_layout(
-            xaxis_rangeslider_visible=False,
-            template="plotly_dark",
-            autosize=True,                         # Zoom par graph ko automatically resize karega
-            margin=dict(l=10, r=10, t=30, b=10),   # Left/Right extra padding kam karega
-            height=450,
-            yaxis=dict(title="Price (USDT)", gridcolor="#2d2d2d"),
-            xaxis=dict(gridcolor="#2d2d2d"),
-            hovermode="x unified"                  # Zoom ke baad bhi data point track karna aasan rakhega
-        ) 
-                            # Streamlit mein use_container_width ko True set karke render karein
+                                xaxis_rangeslider_visible=False,
+                                template="plotly_dark",
+                                autosize=True,
+                                margin=dict(l=10, r=10, t=30, b=10),
+                                height=450,
+                                yaxis=dict(title="Price (USDT)", gridcolor="#2d2d2d"),
+                                xaxis=dict(gridcolor="#2d2d2d"),
+                                hovermode="x unified"
+                            ) 
                             st.plotly_chart(fig, use_container_width=True)
                         except Exception as chart_err:
                             st.error(f"Chart Render Error: {str(chart_err)}")
@@ -388,8 +374,11 @@ with tab2:
                             var_profit = round(var_profit + np.random.uniform(-0.1, 0.1), 2)
                             if var_profit < 0.01: var_profit = round(np.random.uniform(0.05, 0.2), 2)
                             
+                            # Safe date formatting string handling
+                            day_str = day.strftime("%Y-%m-%d") if hasattr(day, 'strftime') else str(day)
+                            
                             ledger_data.append({
-                                "Trading Date": day.strftime("%Y-%m-%d"),
+                                "Trading Date": day_str,
                                 "Fills Count (Trades)": f"{var_trades} Filled",
                                 "Day Net Profit ($)": f"+${var_profit:.2f}"
                             })
@@ -406,7 +395,3 @@ with tab2:
 if st.session_state.bot_running:
     time.sleep(5)
     st.rerun()
-
-
-    # cd "~\Desktop\Python\Code Live"
-    # python -m streamlit run tradewithsmart.py
