@@ -24,8 +24,8 @@ if 'price_history' not in st.session_state: st.session_state.price_history = []
 if 'man_lower' not in st.session_state: st.session_state.man_lower = 0.0
 if 'man_upper' not in st.session_state: st.session_state.man_upper = 0.0
 
-# Tabs Setup
-tab1, tab2 = st.tabs(["🟢 Live Grid Trading Simulation", "📊 Fix Historical Backtesting"])
+# --- TABS SETUP WITH NEW HISTORICAL EXPLORER ---
+tab1, tab2, tab3 = st.tabs(["🟢 Live Grid Trading Simulation", "📊 Fix Historical Backtesting", "📈 Historical Market Explorer"])
 
 # --- MULTI-EXCHANGE SETUP WITH REGION GUARD ---
 selected_exchange_name = st.sidebar.selectbox(
@@ -107,6 +107,7 @@ with st.sidebar.expander("⚡ Order Execution Settings", expanded=False):
 with st.sidebar.expander("🛡️ Global Account Protection (TP/SL)", expanded=False):
     global_tp_percent = st.number_input("Global Target Profit (%)", value=10.0, step=0.5)
     global_sl_percent = st.number_input("Global Stop Loss (%)", value=5.0, step=0.5)
+
 
 # ==========================================
 # TAB 1: LIVE GRID TRADING SIMULATION
@@ -374,7 +375,6 @@ with tab2:
                             var_profit = round(var_profit + np.random.uniform(-0.1, 0.1), 2)
                             if var_profit < 0.01: var_profit = round(np.random.uniform(0.05, 0.2), 2)
                             
-                            # Safe date formatting string handling
                             day_str = day.strftime("%Y-%m-%d") if hasattr(day, 'strftime') else str(day)
                             
                             ledger_data.append({
@@ -390,6 +390,118 @@ with tab2:
                         st.error("No historical data returned from server for this window.")
                 except Exception as e:
                     st.error(f"Backtest Engine Error: {e}")
+
+
+# ==========================================
+# TAB 3: HISTORICAL MARKET EXPLORER
+# ==========================================
+with tab3:
+    st.subheader("📈 Historical Market Explorer")
+    st.write("Kisi bhi coin ka historical data check karein aur filter options apply karein.")
+    
+    # Selection Mode: Selected list or Manual input
+    coin_selection_mode = st.radio("Coin Selection Method:", ["Select from List", "Type Custom Coin (Manual)"], horizontal=True)
+    
+    if coin_selection_mode == "Select from List":
+        explorer_symbol = st.selectbox("Choose a Crypto Asset:", crypto_list, key="explorer_preset_dropdown")
+    else:
+        custom_coin_input = st.text_input("Enter Crypto Symbol (e.g., MATIC/USDT, FTW/USDT, LINK/USDT):", value="BTC/USDT")
+        explorer_symbol = custom_coin_input.strip().upper()
+
+    # Time window configuration
+    explorer_time_frame = st.selectbox("Select History Time Window:", [
+        "1 Din (Past 24 Hours)",
+        "1 Hafta (Past 7 Days)",
+        "1 Mahina (Past 30 Days)",
+        "3 Mahine (Past 90 Days)",
+        "6 Mahine (Past 180 Days)",
+        "12 Mahine (Past 365 Days)"
+    ], key="explorer_tf_select")
+
+    if st.button("🔍 Fetch Historical Chart & Data", use_container_width=True):
+        with st.spinner(f"Fetching data for {explorer_symbol}..."):
+            try:
+                # Map timeframes and resolution parameters
+                explorer_days_map = {
+                    "1 Din (Past 24 Hours)": (1, '15m'),
+                    "1 Hafta (Past 7 Days)": (7, '1h'),
+                    "1 Mahina (Past 30 Days)": (30, '4h'),
+                    "3 Mahine (Past 90 Days)": (90, '1d'),
+                    "6 Mahine (Past 180 Days)": (180, '1d'),
+                    "12 Mahine (Past 365 Days)": (365, '1d')
+                }
+                
+                days_to_fetch, candle_resolution = explorer_days_map[explorer_time_frame]
+                
+                explorer_past_date = datetime.now() - timedelta(days=days_to_fetch)
+                explorer_since_ts = int(explorer_past_date.timestamp() * 1000)
+                
+                # Dynamic API Call based on selected Exchange
+                exp_candles = exchange.fetch_ohlcv(explorer_symbol, timeframe=candle_resolution, since=explorer_since_ts, limit=1000)
+                
+                if exp_candles:
+                    exp_df = pd.DataFrame(exp_candles, columns=['Timestamp', 'Open', 'High', 'Low', 'Close', 'Volume'])
+                    exp_df['Date (UTC)'] = pd.to_datetime(exp_df['Timestamp'], unit='ms')
+                    
+                    # 1. Date में से Time हटाने के लिए (सिर्फ़ YYYY-MM-DD दिखेगा)
+                    exp_df['Date (UTC)'] = exp_df['Date (UTC)'].dt.date
+                    
+                    # 2. Volume को Million, Billion में फॉर्मेट करने के लिए फंक्शन
+                    def format_volume(val):
+                        if val >= 1_000_000_000_000:
+                            return f"{val / 1_000_000_000_000:.2f} T (Trillion)"
+                        elif val >= 1_000_000_000:
+                            return f"{val / 1_000_000_000:.2f} B (Billion)"
+                        elif val >= 1_000_000:
+                            return f"{val / 1_000_000:.2f} M (Million)"
+                        elif val >= 1_000:
+                            return f"{val / 1_000:.2f} K"
+                        return str(round(val, 2))
+                    
+                    # वॉल्यूम कॉलम पर फॉर्मेटिंग अप्लाई करें
+                    exp_df['Volume'] = exp_df['Volume'].apply(format_volume)
+                    
+                    # Create clean interactive chart
+                    exp_fig = go.Figure(data=[go.Candlestick(
+                        x=exp_df['Date (UTC)'],
+                        open=exp_df['Open'],
+                        high=exp_df['High'],
+                        low=exp_df['Low'],
+                        close=exp_df['Close'],
+                        name=f"{explorer_symbol} Price",
+                        increasing_line_color='#26a69a', 
+                        decreasing_line_color='#ef5350'  
+                    )])
+                    
+                    exp_fig.update_layout(
+                        title=f"{explorer_symbol} Historical Candlestick Chart ({explorer_time_frame})",
+                        xaxis_rangeslider_visible=True,
+                        template="plotly_dark",
+                        yaxis=dict(title="Price (USDT)", gridcolor="#2d2d2d"),
+                        xaxis=dict(title="Timeline", gridcolor="#2d2d2d"),
+                        hovermode="x unified",
+                        height=500
+                    )
+                    
+                    st.plotly_chart(exp_fig, use_container_width=True)
+                    
+                    # Show metric analysis summary box
+                    st.write("### 📊 Market Summary Metrics")
+                    e_col1, e_col2, e_col3, e_col4 = st.columns(4)
+                    with e_col1: st.metric("Highest Price", f"${exp_df['High'].max():.4f}")
+                    with e_col2: st.metric("Lowest Price", f"${exp_df['Low'].min():.4f}")
+                    with e_col3: st.metric("Average Close Price", f"${exp_df['Close'].mean():.4f}")
+                    with e_col4: st.metric("Total Candle Fills", f"{len(exp_df)} Data Points")
+                    
+                    # Clean historical table data view
+                    st.write("### 📅 Raw Historical Candle Price Log")
+                    clean_display_df = exp_df[['Date (UTC)', 'Open', 'High', 'Low', 'Close', 'Volume']].sort_values(by='Date (UTC)', ascending=False)
+                    st.dataframe(clean_display_df, use_container_width=True, hide_index=True)
+                else:
+                    st.error(f"Exchange system did not return any records for '{explorer_symbol}'. Symbol valid format validation standard check check karein.")
+            except Exception as exp_err:
+                st.error(f"Market Explorer Error: {str(exp_err)}. Kripya check karein ki exchange par Symbol formatted asset properly accessible hai ya nahi.")
+
 
 # Auto Refresh Interface
 if st.session_state.bot_running:
